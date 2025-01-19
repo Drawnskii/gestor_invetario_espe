@@ -1,7 +1,3 @@
-Aquí tienes el archivo `README` traducido y con la sección adicional de acciones recomendadas antes de ejecutar el proyecto:
-
----
-
 # Gestor de Inventario ESPE
 
 Un nuevo proyecto Flutter.
