@@ -1,0 +1,40 @@
+{
+    "inventario": [
+      {
+        "id": 1,
+        "nombre": "Proyector X1",
+        "descripcion": "Proyector de alta definición para presentaciones.",
+        "ubicacion_original": "Laboratorio 1",
+        "ubicacion_actual": "Aula 2"
+      },
+      {
+        "id": 2,
+        "nombre": "Pantalla LED 4K",
+        "descripcion": "Pantalla para presentaciones multimedia.",
+        "ubicacion_original": "Laboratorio 3",
+        "ubicacion_actual": "Aula 5"
+      },
+      {
+        "id": 3,
+        "nombre": "Computadora Portátil",
+        "descripcion": "Laptop de última generación para tareas de programación.",
+        "ubicacion_original": "Aula 7",
+        "ubicacion_actual": "Laboratorio 2"
+      },
+      {
+        "id": 4,
+        "nombre": "Impresora 3D",
+        "descripcion": "Impresora 3D para prototipos de ingeniería.",
+        "ubicacion_original": "Laboratorio 5",
+        "ubicacion_actual": "Laboratorio 4"
+      },
+      {
+        "id": 5,
+        "nombre": "Servidor de Red",
+        "descripcion": "Servidor para administración de red y almacenamiento.",
+        "ubicacion_original": "Aula 10",
+        "ubicacion_actual": "Aula 8"
+      }
+    ]
+  }
+  
