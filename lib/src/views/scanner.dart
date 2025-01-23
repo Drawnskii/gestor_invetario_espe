@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/todo.dart';
 
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'objects/object_detail.dart';
 
 class Scanner extends StatefulWidget {
@@ -14,72 +15,59 @@ class Scanner extends StatefulWidget {
 }
 
 class _ScannerState extends State<Scanner> {
-  late TextEditingController _controller;
+  final MobileScannerController cameraController = MobileScannerController();
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  String scannedData = ''; // Para mostrar los datos escaneados
+  bool hasScanned = false; // Para evitar múltiples escaneos
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Campo de texto para ingresar el ID del objeto
-            TextField(
-              controller: _controller,
-              decoration: InputDecoration(
-                labelText: 'Ingrese ID del objeto',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number, // Suponemos que el ID es numérico
-              onSubmitted: (String value) async {
-                int index = int.parse(value);
+      body: Column(
+        children: [
+          Expanded(
+            child: MobileScanner(
+              controller: cameraController,
+              onDetect: (BarcodeCapture barcodeCapture) {
+                // Verifica si ya se ha escaneado un código
+                if (hasScanned) return;
 
-                if (index < widget.todos.length) {
-                  // Navegar a la vista con el detalle del objeto
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ObjectDetail(todo: widget.todos[index])),
-                  );
-                }
-                else {
-                  await showDialog<void>(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: const Text('Advertencia!'),
-                        content: Text(
-                            'No se ha encontrado el Todo $value.'),
-                        actions: <Widget>[
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            child: const Text('OK'),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                }
+                final String code = barcodeCapture.barcodes.isNotEmpty
+                    ? barcodeCapture.barcodes[0].rawValue ?? 'Desconocido'
+                    : 'Desconocido';
+
+                Todo bar_code = Todo('Código de barras', code);
+
+                setState(() {
+                  scannedData = code;
+                  hasScanned = true; // Marca que ya se escaneó
+                });
+
+                // Detener la cámara
+                cameraController.stop();
+
+                // Navegar a la vista con el detalle del objeto
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ObjectDetail(todo: bar_code)),
+                ).then((_) {
+                  // Cuando se regrese a esta pantalla, reinicia la cámara
+                  setState(() {
+                    hasScanned = false;
+                  });
+                  cameraController.start();
+                });
               },
             ),
-          ],
-        ),
+          )
+        ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    cameraController.dispose(); // Liberar recursos al cerrar la pantalla
+    super.dispose();
   }
 }
