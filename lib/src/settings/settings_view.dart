@@ -36,13 +36,6 @@ class SettingsView extends StatelessWidget {
           onChanged: (bool value) {
             // Actualiza el themeMode basado en el valor del Switch
             controller.updateThemeMode(value ? ThemeMode.dark : ThemeMode.light);
-
-            final cardColor = Theme.of(context).cardColor;
-            final primaryColor = Theme.of(context).primaryColor;
-
-            // Imprimir colores en la consola
-            debugPrint('Card Color: $cardColor');
-            debugPrint('Primary Color: $primaryColor');
           },
         ),
       ),
