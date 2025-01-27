@@ -14,23 +14,25 @@ class AuthForm extends StatelessWidget {
       length: 2, 
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Inicia Sesión o Regístrate'),
-          bottom: const TabBar(
-            tabs: <Widget>[
-              Tab(
-                icon: Icon(Icons.login_rounded),
-              ),
-              Tab(
-                icon: Icon(Icons.app_registration_outlined),
-              ),
-            ],
-          ),
+          title: const Text('Autentificación'),
         ),
         body: const TabBarView(
           children: <Widget> [
             Center(child: Login()),
             Center(child: Register())
           ]
+        ),
+        bottomNavigationBar: const TabBar(
+          tabs: <Widget>[
+            Tab(
+              icon: Icon(Icons.login_rounded),
+              text: 'Inicia Sesión',
+            ),
+            Tab(
+              icon: Icon(Icons.app_registration_outlined),
+              text: 'Regístrate',
+            ),
+          ],
         ),
       )
     );

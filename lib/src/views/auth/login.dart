@@ -17,32 +17,11 @@ class _LoginState extends State<Login> {
     return Scaffold(
       body: Stack(
         children: [
-          // Fondo con degradado
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF4A90E2), Color(0xFF50C9C3)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
           Center(
             child: SingleChildScrollView(
               child: Container(
                 width: MediaQuery.of(context).size.width * 0.85,
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -53,7 +32,6 @@ class _LoginState extends State<Login> {
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -114,16 +92,6 @@ class _LoginState extends State<Login> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      // Enlace para registrarse
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/register');
-                        },
-                        child: const Text(
-                          '¿No tienes una cuenta? Regístrate aquí',
-                          style: TextStyle(color: Colors.blueAccent),
-                        ),
-                      ),
                     ],
                   ),
                 ),
