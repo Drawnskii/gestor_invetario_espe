@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'views/auth/auth_form.dart';
 
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 
-import 'views/objects/grid_objects.dart';
+import 'views/goods/goods_table.dart';
 import 'views/scanner.dart';
-import 'views/objects/object_registry.dart';
-
-import 'models/todo.dart';
 
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
@@ -62,8 +60,14 @@ class MyApp extends StatelessWidget {
           // Define a light and dark color theme. Then, read the user's
           // preferred ThemeMode (light, dark, or system default) from the
           // SettingsController to display the correct theme.
-          theme: ThemeData(),
-          darkTheme: ThemeData.dark(),
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.green)
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            colorSchemeSeed: Colors.orange,
+          ),
           themeMode: settingsController.themeMode,
 
           // Define a function to handle named routes in order to support
@@ -99,32 +103,9 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  final List<String> _title = [
-    'Objetos Registrados',
-    'Registra un Objeto',
-    'Escanéa un Objeto'
-  ];
-
   final List<Widget> _views = [
-    GridObjects(
-      todos: List.generate(
-        20, 
-        (i) => Todo(
-          'Todo $i',
-          'A description of what need to be done for Todo $i',
-        ),
-      ),
-    ),
-    ObjectRegistry(),
-    Scanner(
-        todos: List.generate(
-        20, 
-        (i) => Todo(
-          'Todo $i',
-          'A description of what need to be done for Todo $i',
-        ),
-      ),
-    )
+    GoodTable(),
+    Scanner()
   ];
 
   void _destinationSelected(int index) {
@@ -137,10 +118,17 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8.0), // Padding solo a la izquierda
+          child: SvgPicture.asset(
+            'assets/images/logo_espe.svg', // Asegúrate de que el archivo esté en assets altura
+            width: 100,
+            height: 100,
+          ),
+        ),
         title: Text(
-          _title[_selectedIndex],
+          'MiAcopio',
           style: TextStyle(
-            
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -151,11 +139,11 @@ class _MainScreenState extends State<MainScreen> {
               return IconButton(
                 onPressed: () {
                   Scaffold.of(context).openEndDrawer();
-                }, 
-                icon: Icon(Icons.settings)
+                },
+                icon: Icon(Icons.settings),
               );
-            }
-          )
+            },
+          ),
         ],
       ),
       endDrawer: Drawer(
@@ -225,7 +213,6 @@ class _MainScreenState extends State<MainScreen> {
         onDestinationSelected: _destinationSelected,
         destinations: const <Widget> [
           NavigationDestination(icon: Icon(Icons.inventory_2_rounded), label: 'Inventario'),
-          NavigationDestination(icon: Icon(Icons.inventory_rounded), label: 'Registrar Objeto'),
           NavigationDestination(icon: Icon(Icons.qr_code_rounded), label: 'Scanner')
         ],
       ),

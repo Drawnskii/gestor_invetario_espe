@@ -15,7 +15,9 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  flutter_svg: ^2.0.17
   mobile_scanner: ^6.0.3
+  provider: ^6.1.2
   qr_flutter: ^4.1.0
 
 dev_dependencies:
