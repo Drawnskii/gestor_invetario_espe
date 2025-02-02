@@ -1,16 +1,58 @@
 import 'package:flutter/material.dart';
 import '../../models/goods_list/goods.dart';
+import '../../services/goods_service.dart'; // Importa el servicio de bienes
+import 'edit_good_form.dart'; // Importa la vista de edición
+
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 
 class GoodDetail extends StatelessWidget {
   final Goods good;
+  final GoodsService _goodsService = GoodsService(); // Instancia del servicio
 
   GoodDetail({required this.good});
 
+  Future<void> _deleteGood(BuildContext context) async {
+    try {
+      await _goodsService.deleteGood(good.code);
+      // Mostrar un mensaje de éxito
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Bien eliminado exitosamente')),
+      );
+      // Navegar de regreso a la pantalla anterior
+      Navigator.of(context).pop();
+    } catch (e) {
+      // Mostrar un mensaje de error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al eliminar el bien: $e')),
+      );
+    }
+  }
+
+  void _navigateToEditGood(BuildContext context) {
+    // Navegar a la vista de edición con el bien actual
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditGoodForm(good: good),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context); // Acceder a autenticación
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Detalles del Bien'),
+        actions: [
+          // Botón de editar en la AppBar
+          IconButton(
+            icon: Icon(Icons.edit),
+            onPressed: () => _navigateToEditGood(context),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -56,11 +98,60 @@ class GoodDetail extends StatelessWidget {
                 ),
               ),
             ),
+            SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => {
+                if (authProvider.isAuthenticated) {
+                  _showDeleteConfirmationDialog(context)
+                } else {
+                  // Usuario no autenticado, mostrar alerta
+                  ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text('Inicia sesión para eliminar el bien')))
+                }
+              }, // Mostrar diálogo de confirmación
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 20), // Padding más grande
+              ),
+              icon: Icon(Icons.delete, color: Colors.red, size: 28), // Ícono más grande
+              label: Text(
+                'Eliminar',
+                style: TextStyle(fontSize: 18), // Texto más grande
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+
+  // Función para mostrar el cuadro de diálogo de confirmación
+  void _showDeleteConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirmar eliminación'),
+          content: Text('¿Estás seguro de que deseas eliminar este elemento?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Cerrar el diálogo
+              },
+              child: Text('Cancelar', style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Cerrar el diálogo
+                _deleteGood(context); // Ejecutar la acción de eliminar
+              },
+              child: Text('Eliminar', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
   // Método auxiliar para construir una fila de detalle con ícono
   Widget _buildDetailRow(IconData icon, String label, String value) {

@@ -27,7 +27,8 @@ class _ScannerState extends State<Scanner> {
     final response = await http.get(Uri.parse('http://192.168.100.11:8000/api/goods-by-code/$code/'));
 
     if (response.statusCode == 200) {
-      return Goods.fromJson(json.decode(response.body));
+      String decodedResponse = utf8.decode(response.bodyBytes);
+      return Goods.fromJson(json.decode(decodedResponse));
     } else if (response.statusCode == 404) {
       return null;
     } else {
@@ -61,12 +62,16 @@ class _ScannerState extends State<Scanner> {
 
                 fetchGoodFromAPI(scannedData).then((result) {
                   if (result != null) {
+                    // Navegar a la pantalla de detalles del bien
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => GoodDetail(good: result)),
                     ).then((_) {
-                      setState(() => hasScanned = false);
-                      cameraController.start();
+                      // Resetear estado después de regresar
+                      setState(() {
+                        hasScanned = false;
+                        cameraController.start();
+                      });
                     });
                   } else {
                     if (authProvider.isAuthenticated) {
@@ -75,8 +80,11 @@ class _ScannerState extends State<Scanner> {
                         context,
                         MaterialPageRoute(builder: (context) => GoodForm(scannedCode: scannedData)),
                       ).then((_) {
-                        setState(() => hasScanned = false);
-                        cameraController.start();
+                        // Resetear estado después de regresar
+                        setState(() {
+                          hasScanned = false;
+                          cameraController.start();
+                        });
                       });
                     } else {
                       // Usuario no autenticado, mostrar alerta
@@ -93,8 +101,11 @@ class _ScannerState extends State<Scanner> {
                           ],
                         ),
                       ).then((_) {
-                        setState(() => hasScanned = false);
-                        cameraController.start();
+                        // Resetear estado después de cerrar la alerta
+                        setState(() {
+                          hasScanned = false;
+                          cameraController.start();
+                        });
                       });
                     }
                   }
@@ -102,8 +113,10 @@ class _ScannerState extends State<Scanner> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error al obtener el bien: $e')),
                   );
-                  setState(() => hasScanned = false);
-                  cameraController.start();
+                  setState(() {
+                    hasScanned = false;
+                    cameraController.start();
+                  });
                 });
               },
             ),

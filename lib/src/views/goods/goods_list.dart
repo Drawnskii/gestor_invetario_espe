@@ -3,10 +3,10 @@ import '../../services/goods_list_service.dart';
 import '../../services/keeper_list_service.dart';
 import '../../services/location_list_service.dart';
 import '../../services/good_type_list_service.dart';
-import '../../models/goods_list/goods.dart';
 import '../../models/keeper_name.dart';
 import '../../models/location_name.dart';
 import '../../models/good_type.dart';
+import '../../models/goods_list/goods_response.dart';
 
 class GoodsList extends StatefulWidget {
   const GoodsList({super.key});
@@ -21,7 +21,7 @@ class _GoodsListScreenState extends State<GoodsList> {
   final LocationService locationService = LocationService();
   final GoodTypeService goodTypeService = GoodTypeService();
 
-  late Future<List<Goods>> futureGoods;
+  late Future<GoodsResponse> futureGoods;
   late TextEditingController _descriptionController;
   late TextEditingController _keeperNameController;
 
@@ -36,12 +36,18 @@ class _GoodsListScreenState extends State<GoodsList> {
   List<GoodType> types = [];
   List<GoodType> selectedTypes = [];
 
+  // Variables para manejar la paginación
+  String? nextPage;
+  String? previousPage;
+
+  int currentPage = 1;
+
   @override
   void initState() {
     super.initState();
     _descriptionController = TextEditingController();
     _keeperNameController = TextEditingController();
-    futureGoods = goodsService.fetchGoods();
+    futureGoods = goodsService.fetchGoods(page: currentPage);
     _loadDropdownData();
   }
 
@@ -67,6 +73,7 @@ class _GoodsListScreenState extends State<GoodsList> {
         locationId: selectedLocation?.id,
         typeId: selectedType?.id,
         description: descriptionFilter,
+        page: currentPage,  // Keep the current page when applying filters
       );
     });
   }
@@ -82,7 +89,7 @@ class _GoodsListScreenState extends State<GoodsList> {
       _keeperNameController.clear();
     });
 
-    futureGoods = goodsService.fetchGoods();
+    futureGoods = goodsService.fetchGoods(page: currentPage); // Reset to current page
     FocusScope.of(context).unfocus();
   }
 
@@ -92,6 +99,26 @@ class _GoodsListScreenState extends State<GoodsList> {
         selectedType != null ||
         descriptionFilter.isNotEmpty ||
         keeperFullNameFilter.isNotEmpty;
+  }
+
+  // Función para cargar la siguiente página
+  void _loadNextPage() {
+    if (nextPage != null) {
+      currentPage++;
+      setState(() {
+        futureGoods = goodsService.fetchGoods(page: currentPage);
+      });
+    }
+  }
+
+  // Función para cargar la página anterior
+  void _loadPreviousPage() {
+    if (previousPage != null) {
+      currentPage--;
+      setState(() {
+        futureGoods = goodsService.fetchGoods(page: currentPage);
+      });
+    }
   }
 
   @override
@@ -104,7 +131,7 @@ class _GoodsListScreenState extends State<GoodsList> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Primera fila - Chips de tipos de bienes
+                // Filtro por Tipo de Bienes
                 Center(
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -129,7 +156,7 @@ class _GoodsListScreenState extends State<GoodsList> {
                 ),
                 const SizedBox(height: 16),
 
-                // Segunda fila - Filtro por Keeper y Ubicación
+                // Filtros por Encargado y Ubicación
                 Row(
                   children: [
                     Expanded(
@@ -149,7 +176,7 @@ class _GoodsListScreenState extends State<GoodsList> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildFilterDropdown<LocationName>(
+                      child: _buildFilterDropdown<LocationName>( 
                         label: "Ubicación",
                         value: selectedLocation,
                         items: locations,
@@ -163,7 +190,7 @@ class _GoodsListScreenState extends State<GoodsList> {
                 ),
                 const SizedBox(height: 16),
 
-                // Tercera fila - Filtro por descripción y botones de filtros
+                // Filtros por Descripción y Botones
                 Row(
                   children: [
                     Expanded(
@@ -196,7 +223,7 @@ class _GoodsListScreenState extends State<GoodsList> {
           ),
 
           Expanded(
-            child: FutureBuilder<List<Goods>>(
+            child: FutureBuilder<GoodsResponse>(
               future: futureGoods,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -205,7 +232,7 @@ class _GoodsListScreenState extends State<GoodsList> {
                 if (snapshot.hasError) {
                   return Center(child: Text("Error: ${snapshot.error}"));
                 }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                if (!snapshot.hasData || snapshot.data!.results.isEmpty) {
                   return const Center(
                     child: Text(
                       "No hay bienes disponibles",
@@ -213,80 +240,119 @@ class _GoodsListScreenState extends State<GoodsList> {
                     ),
                   );
                 }
-                return ListView.builder(
-                  itemCount: snapshot.data!.length,
-                  itemBuilder: (context, index) {
-                    final good = snapshot.data![index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                      elevation: 4.0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          children: [
-                            // Ícono principal
-                            Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                Icons.inventory_rounded,
-                                size: 32,
-                                color: Colors.blue.shade700,
-                              ),
+
+                GoodsResponse response = snapshot.data!;
+
+                // Guardamos los valores de la paginación
+                nextPage = response.next;
+                previousPage = response.previous;
+
+                return Column(
+                  children: [
+                    // Lista de bienes
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: response.results.length,
+                        itemBuilder: (context, index) {
+                          final good = response.results[index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                            elevation: 4.0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
                             ),
-                            const SizedBox(width: 16),
-                            // Información del bien
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
                                 children: [
-                                  // Descripción
-                                  Text(
-                                    good.description,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
+                                  Container(
+                                    width: 60,
+                                    height: 60,
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(
+                                      Icons.inventory_rounded,
+                                      size: 32,
+                                      color: Colors.blue.shade700,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  // Keeper
-                                  _buildInfoRow(
-                                    icon: Icons.person_outline,
-                                    text: "${good.keeper.firstName} ${good.keeper.lastName}",
-                                  ),
-                                  const SizedBox(height: 4),
-                                  // Código
-                                  _buildInfoRow(
-                                    icon: Icons.code,
-                                    text: good.code,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  // Ubicación
-                                  _buildInfoRow(
-                                    icon: Icons.location_on_outlined,
-                                    text: good.location.name,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  // Tipo
-                                  _buildInfoRow(
-                                    icon: Icons.category_outlined,
-                                    text: good.type.name,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          good.description,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        _buildInfoRow(
+                                          icon: Icons.person_outline,
+                                          text: "${good.keeper.firstName} ${good.keeper.lastName}",
+                                        ),
+                                        const SizedBox(height: 4),
+                                        _buildInfoRow(
+                                          icon: Icons.code,
+                                          text: good.code,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        _buildInfoRow(
+                                          icon: Icons.location_on_outlined,
+                                          text: good.location.name,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        _buildInfoRow(
+                                          icon: Icons.category_outlined,
+                                          text: good.type.name,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                    // Botones de navegación
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back),
+                          onPressed: previousPage != null ? _loadPreviousPage : null,
+                          style: IconButton.styleFrom(
+                            shape: const CircleBorder(),
+                            padding: const EdgeInsets.all(12),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Text(
+                            '$currentPage',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_forward),
+                          onPressed: nextPage != null ? _loadNextPage : null,
+                          style: IconButton.styleFrom(
+                            shape: const CircleBorder(),
+                            padding: const EdgeInsets.all(12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 );
               },
             ),
@@ -312,10 +378,7 @@ class _GoodsListScreenState extends State<GoodsList> {
       value: value,
       itemHeight: 50,
       items: items.map((T item) {
-        return DropdownMenuItem<T>(
-          value: item,
-          child: Text(displayValue(item)),
-        );
+        return DropdownMenuItem<T>(value: item, child: Text(displayValue(item)));
       }).toList(),
       onChanged: onChanged,
     );
