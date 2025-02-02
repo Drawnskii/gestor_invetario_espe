@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:inventario/src/models/goods_list.dart';
+import 'package:inventario/src/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 import 'src/app.dart';
@@ -20,7 +20,7 @@ void main() async {
   // SettingsView.
   runApp(
     ChangeNotifierProvider(
-      create: (context) => GoodsList(),
+      create: (context) => AuthProvider(),
       child: MyApp(settingsController: settingsController),
     )
   );

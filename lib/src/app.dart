@@ -8,8 +8,10 @@ import 'views/auth/auth_form.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 
-import 'views/goods/goods_table.dart';
+import 'views/goods/goods_list.dart';
 import 'views/scanner.dart';
+
+import 'services/auth/login_service.dart';
 
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
@@ -104,7 +106,7 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _views = [
-    GoodTable(),
+    GoodsList(),
     Scanner()
   ];
 
@@ -164,24 +166,25 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ),
             ),
-            // Opciones con íconos
-            ListTile(
-              leading: const Icon(Icons.login_rounded),
-              title: const Text('Iniciar Sesión o Registrarse'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.restorablePushNamed(context, AuthForm.routeName);
+            // FUTUREBUILDER PARA VERIFICAR SI EL USUARIO ESTÁ AUTENTICADO
+            FutureBuilder<bool>(
+              future: LoginService().isLoggedIn(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData || snapshot.data == false) {
+                  // Usuario NO autenticado: Mostrar opción de login
+                  return ListTile(
+                    leading: const Icon(Icons.login_rounded),
+                    title: const Text('Iniciar Sesión o Registrarse'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.restorablePushNamed(context, AuthForm.routeName);
+                    },
+                  );
+                } else {
+                  return SizedBox.shrink(); // No mostrar nada si el usuario está logueado
+                }
               },
             ),
-            // ListTile(
-            //   leading: const Icon(Icons.person),
-            //   title: const Text('Mi Perfil'),
-            //   onTap: () {
-            //     Navigator.pop(context);
-
-            //     // Acción para "Mi Perfil"
-            //   },
-            // ),
             ListTile(
               leading: Icon(Icons.settings),
               title: Text('Configuración'),
@@ -191,17 +194,28 @@ class _MainScreenState extends State<MainScreen> {
               },
             ),
             Divider(),
-            ListTile(
-              leading: Icon(
-                Icons.logout_rounded,
-                size: 20,
-              ),
-              title: Text(
-                'Cerrar Sesión',
-                style: TextStyle(fontSize: 14), // Tamaño de texto reducido
-              ),
-              onTap: () {
-                // Acción para "Cerrar Sesión"
+            // Cerrar Sesión (Solo se muestra si está autenticado)
+            FutureBuilder<bool>(
+              future: LoginService().isLoggedIn(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data == true) {
+                  return ListTile(
+                    leading: Icon(Icons.logout_rounded, size: 20),
+                    title: Text(
+                      'Cerrar Sesión',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    onTap: () async {
+                      await LoginService().logout();
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => MainScreen()),
+                      );
+                    },
+                  );
+                } else {
+                  return SizedBox.shrink(); // No mostrar si no está logueado
+                }
               },
             ),
           ],
