@@ -1,71 +1,68 @@
 import 'package:flutter/material.dart';
 import '../../services/goods_list_service.dart';
-import '../../services/keeper_list_service.dart'; // Asegúrate de importar el servicio de Keepers
-import '../../services/location_list_service.dart'; // Asegúrate de importar el servicio de Locations
-import '../../services/good_type_list_service.dart'; // Asegúrate de importar el servicio de GoodTypes
+import '../../services/keeper_list_service.dart';
+import '../../services/location_list_service.dart';
+import '../../services/good_type_list_service.dart';
 import '../../models/goods_list/goods.dart';
-import '../../models/keeper_name.dart';  // Asegúrate de importar el modelo de Keeper
-import '../../models/location_name.dart';  // Asegúrate de importar el modelo de Location
-import '../../models/good_type.dart';  // Asegúrate de importar el modelo de GoodType
+import '../../models/keeper_name.dart';
+import '../../models/location_name.dart';
+import '../../models/good_type.dart';
 
 class GoodsList extends StatefulWidget {
+  const GoodsList({super.key});
+
   @override
   _GoodsListScreenState createState() => _GoodsListScreenState();
 }
 
 class _GoodsListScreenState extends State<GoodsList> {
   final GoodsListService goodsService = GoodsListService();
-  
-  // Nuevos servicios para Keepers, Locations y GoodTypes
   final KeeperService keeperService = KeeperService();
   final LocationService locationService = LocationService();
   final GoodTypeService goodTypeService = GoodTypeService();
 
   late Future<List<Goods>> futureGoods;
-  
-  // Controladores para los filtros
   late TextEditingController _descriptionController;
+  late TextEditingController _keeperNameController;
 
-  // Variables para los filtros
   KeeperName? selectedKeeper;
   LocationName? selectedLocation;
   GoodType? selectedType;
   String descriptionFilter = "";
+  String keeperFullNameFilter = "";
 
-  // Listas para los dropdowns (Aquí deberían venir de tu API)
   List<KeeperName> keepers = [];
   List<LocationName> locations = [];
   List<GoodType> types = [];
+  List<GoodType> selectedTypes = [];
 
   @override
   void initState() {
     super.initState();
     _descriptionController = TextEditingController();
-    futureGoods = goodsService.fetchGoods(); // Cargar datos iniciales sin filtros
-
-    // Llamadas para obtener los keepers, locations y types desde la API
+    _keeperNameController = TextEditingController();
+    futureGoods = goodsService.fetchGoods();
     _loadDropdownData();
   }
 
   @override
   void dispose() {
-    _descriptionController.dispose(); // Liberar el controlador
+    _descriptionController.dispose();
+    _keeperNameController.dispose();
     super.dispose();
   }
 
-  // Método para cargar los datos para los dropdowns
   void _loadDropdownData() async {
-    // Aquí usamos los servicios correspondientes para cargar los datos
     keepers = await keeperService.fetchKeepers();
     locations = await locationService.fetchLocations();
     types = await goodTypeService.fetchGoodTypes();
-    setState(() {}); // Actualizamos el estado para que se construyan los dropdowns
+    setState(() {});
   }
 
-  // Método para aplicar los filtros
   void applyFilters() {
     setState(() {
       futureGoods = goodsService.fetchGoods(
+        keeperFullName: keeperFullNameFilter,
         keeperId: selectedKeeper?.id,
         locationId: selectedLocation?.id,
         typeId: selectedType?.id,
@@ -74,191 +71,273 @@ class _GoodsListScreenState extends State<GoodsList> {
     });
   }
 
-  // Método para limpiar los filtros
   void clearFilters() {
     setState(() {
       selectedKeeper = null;
       selectedLocation = null;
       selectedType = null;
       descriptionFilter = "";
-      _descriptionController.clear(); // Limpiar el campo de texto
+      keeperFullNameFilter = "";
+      _descriptionController.clear();
+      _keeperNameController.clear();
     });
-    futureGoods = goodsService.fetchGoods(); // Recargar datos sin filtros
+
+    futureGoods = goodsService.fetchGoods();
+    FocusScope.of(context).unfocus();
+  }
+
+  bool get isFilterActive {
+    return selectedKeeper != null ||
+        selectedLocation != null ||
+        selectedType != null ||
+        descriptionFilter.isNotEmpty ||
+        keeperFullNameFilter.isNotEmpty;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Sección de filtros
-            Expanded(
-              flex: 2,
-              child: ListView(
-                children: [
-                  _buildFilterDropdown<KeeperName>(
-                    label: "Filtrar por Keeper",
-                    value: selectedKeeper,
-                    items: keepers, // Aquí utilizamos la lista de keepers cargada desde keeperService
-                    onChanged: (KeeperName? newValue) {
-                      setState(() {
-                        selectedKeeper = newValue;
-                      });
-                    },
-                    displayValue: (KeeperName item) => '${item.firstName} ${item.lastName}', // Muestra nombre y apellido
-                  ),
-                  _buildFilterDropdown<LocationName>(
-                    label: "Filtrar por Ubicación",
-                    value: selectedLocation,
-                    items: locations, // Aquí utilizamos la lista de locations cargada desde locationService
-                    onChanged: (LocationName? newValue) {
-                      setState(() {
-                        selectedLocation = newValue;
-                      });
-                    },
-                    displayValue: (LocationName item) => item.name, // Muestra el nombre de la ubicación
-                  ),
-                  _buildFilterDropdown<GoodType>(
-                    label: "Filtrar por Tipo",
-                    value: selectedType,
-                    items: types, // Aquí utilizamos la lista de tipos cargada desde goodTypeService
-                    onChanged: (GoodType? newValue) {
-                      setState(() {
-                        selectedType = newValue;
-                      });
-                    },
-                    displayValue: (GoodType item) => item.name, // Muestra el nombre del tipo
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: TextField(
-                      controller: _descriptionController,
-                      decoration: InputDecoration(
-                        labelText: 'Filtrar por Descripción',
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          descriptionFilter = value;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Botones de aplicar y limpiar filtros
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: applyFilters,
-                    child: Text("Aplicar Filtros"),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: Size(150, 50),
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: clearFilters,
-                    child: Text("Limpiar Filtros"),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: Size(150, 50),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Lista de bienes
-            Expanded(
-              flex: 3,
-              child: FutureBuilder<List<Goods>>(
-                future: futureGoods,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  }
-
-                  if (snapshot.hasError) {
-                    return Center(child: Text("Error: ${snapshot.error}"));
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text("No hay bienes disponibles"));
-                  }
-
-                  List<Goods> goodsList = snapshot.data!;
-
-                  return ListView.builder(
-                    itemCount: goodsList.length,
-                    itemBuilder: (context, index) {
-                      final good = goodsList[index];
-
-                      return Card(
-                        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                        elevation: 5,
-                        child: ListTile(
-                          contentPadding: EdgeInsets.all(16),
-                          title: Text(
-                            good.description,
-                            style: TextStyle(fontWeight: FontWeight.bold),
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Primera fila - Chips de tipos de bienes
+                Center(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: types.map((type) {
+                        bool isSelected = selectedType == type;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: FilterChip(
+                            label: Text(type.name),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                selectedType = selected ? type : null;
+                              });
+                            },
                           ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("Código: ${good.keeper.firstName}"),
-                              Text("Código: ${good.code}"),
-                              Text("Ubicación: ${good.location.name}"),
-                              Text("Tipo: ${good.type.name}"),
-                            ],
-                          ),
-                          isThreeLine: true,
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Segunda fila - Filtro por Keeper y Ubicación
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _keeperNameController,
+                        decoration: InputDecoration(
+                          labelText: 'Encargado',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
+                        onChanged: (value) {
+                          setState(() {
+                            keeperFullNameFilter = value;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildFilterDropdown<LocationName>(
+                        label: "Ubicación",
+                        value: selectedLocation,
+                        items: locations,
+                        onChanged: (LocationName? newValue) {
+                          setState(() => selectedLocation = newValue);
+                        },
+                        displayValue: (LocationName item) => item.name,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Tercera fila - Filtro por descripción y botones de filtros
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _descriptionController,
+                        decoration: InputDecoration(
+                          labelText: 'Descripción',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        ),
+                        onChanged: (value) {
+                          setState(() => descriptionFilter = value);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      icon: const Icon(Icons.filter_alt_rounded, size: 32),
+                      onPressed: isFilterActive ? applyFilters : null,
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.clear_rounded, size: 32),
+                      onPressed: isFilterActive ? clearFilters : null,
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          Expanded(
+            child: FutureBuilder<List<Goods>>(
+              future: futureGoods,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text("Error: ${snapshot.error}"));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "No hay bienes disponibles",
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  itemCount: snapshot.data!.length,
+                  itemBuilder: (context, index) {
+                    final good = snapshot.data![index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                      elevation: 4.0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            // Ícono principal
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.inventory_rounded,
+                                size: 32,
+                                color: Colors.blue.shade700,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            // Información del bien
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Descripción
+                                  Text(
+                                    good.description,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Keeper
+                                  _buildInfoRow(
+                                    icon: Icons.person_outline,
+                                    text: "${good.keeper.firstName} ${good.keeper.lastName}",
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // Código
+                                  _buildInfoRow(
+                                    icon: Icons.code,
+                                    text: good.code,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // Ubicación
+                                  _buildInfoRow(
+                                    icon: Icons.location_on_outlined,
+                                    text: good.location.name,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // Tipo
+                                  _buildInfoRow(
+                                    icon: Icons.category_outlined,
+                                    text: good.type.name,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // Método para construir un DropdownButton genérico
   Widget _buildFilterDropdown<T>({
     required String label,
     required T? value,
     required List<T> items,
     required Function(T?) onChanged,
-    required String Function(T) displayValue, // Función para mostrar el valor en el Dropdown
+    required String Function(T) displayValue,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
-          DropdownButton<T>(
-            isExpanded: true,
-            value: value,  // Usamos el valor directamente sin buscarlo
-            hint: Text("Seleccionar"),
-            items: items.map((T item) {
-              return DropdownMenuItem<T>(
-                value: item,
-                child: Text(displayValue(item)), // Usamos la función para mostrar el valor
-              );
-            }).toList(),
-            onChanged: onChanged,
-          ),
-        ],
+    return DropdownButtonFormField<T>(
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       ),
+      value: value,
+      itemHeight: 50,
+      items: items.map((T item) {
+        return DropdownMenuItem<T>(
+          value: item,
+          child: Text(displayValue(item)),
+        );
+      }).toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildInfoRow({required IconData icon, required String text}) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: Colors.grey.shade600,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade800,
+          ),
+        ),
+      ],
     );
   }
 }

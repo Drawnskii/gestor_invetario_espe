@@ -11,6 +11,7 @@ class GoodsListService {
     int? locationId,
     int? typeId,
     String? description,
+    String? keeperFullName,  // Agregar este parámetro para el nombre completo
   }) async {
     try {
       // Construir la URL con parámetros de filtro de forma clara
@@ -19,6 +20,7 @@ class GoodsListService {
         if (locationId != null) 'location': locationId.toString(),
         if (typeId != null) 'type': typeId.toString(),
         if (description != null && description.isNotEmpty) 'description__icontains': description, // Filtrado insensible a mayúsculas
+        if (keeperFullName != null && keeperFullName.isNotEmpty) 'keeper_full_name': keeperFullName, // Nuevo parámetro para nombre completo
       });
 
       final response = await http.get(uri);

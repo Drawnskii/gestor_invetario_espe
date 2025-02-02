@@ -11,7 +11,7 @@ import '../../models/good_type.dart';
 class GoodForm extends StatefulWidget {
   final String? scannedCode;
 
-  GoodForm({this.scannedCode});
+  const GoodForm({super.key, this.scannedCode});
 
   @override
   _GoodFormState createState() => _GoodFormState();
@@ -92,35 +92,47 @@ class _GoodFormState extends State<GoodForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Formulario de Bien')),
-      body: Padding(
+      appBar: AppBar(
+        title: Text('Formulario de Bien'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(
+              // Campo de Código
+              _buildTextField(
                 controller: codeController,
-                decoration: InputDecoration(labelText: 'Código'),
+                labelText: 'Código',
+                icon: Icons.code,
                 validator: (value) =>
                     value!.isEmpty ? 'Por favor ingrese el código' : null,
               ),
-              TextFormField(
+              const SizedBox(height: 16),
+
+              // Campo de Descripción
+              _buildTextField(
                 controller: descriptionController,
-                decoration: InputDecoration(labelText: 'Descripción'),
+                labelText: 'Descripción',
+                icon: Icons.description,
                 validator: (value) =>
                     value!.isEmpty ? 'Por favor ingrese la descripción' : null,
               ),
-              DropdownButtonFormField<LocationName>(
+              const SizedBox(height: 16),
+
+              // Dropdown de Ubicación
+              _buildDropdown<LocationName>(
                 value: selectedLocation,
-                decoration: InputDecoration(labelText: 'Ubicación'),
-                items: locations.map((LocationName location) {
-                  return DropdownMenuItem<LocationName>(
-                    value: location,
-                    child: Text(location.name),
-                  );
-                }).toList(),
+                labelText: 'Ubicación',
+                icon: Icons.location_on,
+                items: locations,
+                displayText: (location) => location.name,
                 onChanged: (newValue) {
                   setState(() {
                     selectedLocation = newValue;
@@ -129,15 +141,15 @@ class _GoodFormState extends State<GoodForm> {
                 validator: (value) =>
                     value == null ? 'Seleccione una ubicación' : null,
               ),
-              DropdownButtonFormField<GoodType>(
+              const SizedBox(height: 16),
+
+              // Dropdown de Tipo
+              _buildDropdown<GoodType>(
                 value: selectedType,
-                decoration: InputDecoration(labelText: 'Tipo'),
-                items: types.map((GoodType type) {
-                  return DropdownMenuItem<GoodType>(
-                    value: type,
-                    child: Text(type.name),
-                  );
-                }).toList(),
+                labelText: 'Tipo',
+                icon: Icons.category,
+                items: types,
+                displayText: (type) => type.name,
                 onChanged: (newValue) {
                   setState(() {
                     selectedType = newValue;
@@ -146,19 +158,81 @@ class _GoodFormState extends State<GoodForm> {
                 validator: (value) =>
                     value == null ? 'Seleccione un tipo' : null,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 24),
+
+              // Botón de Crear Bien
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState?.validate() ?? false) {
                     createGood();
+                    Navigator.pop(context);
                   }
                 },
-                child: Text('Crear Bien'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Crear Bien',
+                  style: TextStyle(fontSize: 16),
+                ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  // Método para construir un TextField con ícono
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String labelText,
+    required IconData icon,
+    required String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: labelText,
+        prefixIcon: Icon(icon),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      validator: validator,
+    );
+  }
+
+  // Método para construir un DropdownButtonFormField con ícono
+  Widget _buildDropdown<T>({
+    required T? value,
+    required String labelText,
+    required IconData icon,
+    required List<T> items,
+    required String Function(T) displayText,
+    required void Function(T?) onChanged,
+    required String? Function(T?)? validator,
+  }) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      decoration: InputDecoration(
+        labelText: labelText,
+        prefixIcon: Icon(icon),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      items: items.map((T item) {
+        return DropdownMenuItem<T>(
+          value: item,
+          child: Text(displayText(item)),
+        );
+      }).toList(),
+      onChanged: onChanged,
+      validator: validator,
     );
   }
 }

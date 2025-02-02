@@ -13,6 +13,9 @@ import 'views/scanner.dart';
 
 import 'services/auth/login_service.dart';
 
+import 'package:provider/provider.dart';
+import 'providers/auth_provider.dart';
+
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
   const MyApp({
@@ -206,7 +209,8 @@ class _MainScreenState extends State<MainScreen> {
                       style: TextStyle(fontSize: 14),
                     ),
                     onTap: () async {
-                      await LoginService().logout();
+                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                      await authProvider.logout();
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(builder: (context) => MainScreen()),
