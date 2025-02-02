@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:provider/provider.dart'; // Importa provider
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:provider/provider.dart';
 
-import '../models/good.dart';
-import '../models/goods_list.dart';
-
+import '../models/goods_list/goods.dart';
+import '../providers/auth_provider.dart';
 import 'goods/good_detail.dart';
 import 'goods/good_form.dart';
 
@@ -18,11 +19,26 @@ class Scanner extends StatefulWidget {
 class _ScannerState extends State<Scanner> {
   final MobileScannerController cameraController = MobileScannerController();
 
-  String scannedData = ''; // Para mostrar los datos escaneados
-  bool hasScanned = false; // Para evitar múltiples escaneos
+  String scannedData = '';
+  bool hasScanned = false;
+
+  // Función para obtener el bien desde la API
+  Future<Goods?> fetchGoodFromAPI(String code) async {
+    final response = await http.get(Uri.parse('http://192.168.100.11:8000/api/goods-by-code/$code/'));
+
+    if (response.statusCode == 200) {
+      return Goods.fromJson(json.decode(response.body));
+    } else if (response.statusCode == 404) {
+      return null;
+    } else {
+      throw Exception('Error al obtener el bien desde la API');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context); // Acceder a autenticación
+
     return Scaffold(
       body: Column(
         children: [
@@ -30,7 +46,6 @@ class _ScannerState extends State<Scanner> {
             child: MobileScanner(
               controller: cameraController,
               onDetect: (BarcodeCapture barcodeCapture) {
-                // Verifica si ya se ha escaneado un código
                 if (hasScanned) return;
 
                 final String code = barcodeCapture.barcodes.isNotEmpty
@@ -39,49 +54,60 @@ class _ScannerState extends State<Scanner> {
 
                 setState(() {
                   scannedData = code;
-                  hasScanned = true; // Marca que ya se escaneó
+                  hasScanned = true;
                 });
 
-                final goodsList = Provider.of<GoodsList>(context, listen: false); // Acceso al GoodsList usando Provider
-
-                Good result = Good().query(goodsList.goods, scannedData);
-
-                // Detener la cámara
                 cameraController.stop();
 
-                // Navegar a la vista con el detalle del objeto
-                if (result.code != null && result.name != null && result.keeper != null && result.brand != null) {
-                  // Si el Good ya existe, navegar a la vista de detalle
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => GoodDetail(good: result)),
-                  ).then((_) {
-                    // Reiniciar el escaneo y la cámara
-                    setState(() {
-                      hasScanned = false;
+                fetchGoodFromAPI(scannedData).then((result) {
+                  if (result != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => GoodDetail(good: result)),
+                    ).then((_) {
+                      setState(() => hasScanned = false);
+                      cameraController.start();
                     });
-                    cameraController.start();
-                  });
-                } else {
-                  // Si el Good no existe, navega al formulario para crear uno nuevo
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => GoodForm(code: scannedData)),
-                  ).then((newGood) {
-                    if (newGood != null) {
-                      // Añadir el nuevo bien a la lista global mediante el provider
-                      goodsList.add(newGood);
+                  } else {
+                    if (authProvider.isAuthenticated) {
+                      // Usuario autenticado, ir a GoodForm
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => GoodForm(scannedCode: scannedData)),
+                      ).then((_) {
+                        setState(() => hasScanned = false);
+                        cameraController.start();
+                      });
+                    } else {
+                      // Usuario no autenticado, mostrar alerta
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text("Iniciar Sesión"),
+                          content: Text("Debe iniciar sesión para registrar un nuevo bien."),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text("Cerrar"),
+                            ),
+                          ],
+                        ),
+                      ).then((_) {
+                        setState(() => hasScanned = false);
+                        cameraController.start();
+                      });
                     }
-                    // Reiniciar el escaneo y la cámara
-                    setState(() {
-                      hasScanned = false;
-                    });
-                    cameraController.start();
-                  });
-                }
+                  }
+                }).catchError((e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al obtener el bien: $e')),
+                  );
+                  setState(() => hasScanned = false);
+                  cameraController.start();
+                });
               },
             ),
-          )
+          ),
         ],
       ),
     );
@@ -89,7 +115,7 @@ class _ScannerState extends State<Scanner> {
 
   @override
   void dispose() {
-    cameraController.dispose(); // Liberar recursos al cerrar la pantalla
+    cameraController.dispose();
     super.dispose();
   }
 }

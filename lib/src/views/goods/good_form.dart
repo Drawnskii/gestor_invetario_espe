@@ -1,10 +1,17 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../models/good.dart';  // Asegúrate de importar tu modelo Good
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:inventario/src/utils/secure_storage.dart';
+import '../../services/location_list_service.dart';
+import '../../services/good_type_list_service.dart';
+import '../../models/location_name.dart';
+import '../../models/good_type.dart';
 
 class GoodForm extends StatefulWidget {
-  final String? code;
+  final String? scannedCode;
 
-  const GoodForm({super.key, required this.code});
+  GoodForm({this.scannedCode});
 
   @override
   _GoodFormState createState() => _GoodFormState();
@@ -12,115 +19,141 @@ class GoodForm extends StatefulWidget {
 
 class _GoodFormState extends State<GoodForm> {
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController codeController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
 
-  // Controladores para los campos del formulario
-  late TextEditingController _codeController;
-  late TextEditingController _nameController;
-  late TextEditingController _keeperController;
-  late TextEditingController _brandController;
+  final storage = FlutterSecureStorage();
+  final String apiUrl = 'http://192.168.100.11:8000/api/goods/';
+
+  final LocationService locationService = LocationService();
+  final GoodTypeService goodTypeService = GoodTypeService();
+
+  List<LocationName> locations = [];
+  List<GoodType> types = [];
+
+  LocationName? selectedLocation;
+  GoodType? selectedType;
 
   @override
   void initState() {
     super.initState();
-
-    // Si hay un "Good" pasado al formulario, inicializa los controladores con esos valores
-    _codeController = TextEditingController(text: widget.code);
-    _nameController = TextEditingController(text: '');
-    _keeperController = TextEditingController(text: '');
-    _brandController = TextEditingController(text: '');
+    if (widget.scannedCode != null) {
+      codeController.text = widget.scannedCode!;
+    }
+    _loadDropdownData();
   }
 
-  @override
-  void dispose() {
-    // Limpia los controladores al destruir el widget
-    _codeController.dispose();
-    _nameController.dispose();
-    _keeperController.dispose();
-    _brandController.dispose();
-    super.dispose();
+  void _loadDropdownData() async {
+    locations = await locationService.fetchLocations();
+    types = await goodTypeService.fetchGoodTypes();
+    setState(() {});
   }
 
-  // Función para guardar los datos y devolver el nuevo Good
-  void _saveForm() {
-    if (_formKey.currentState!.validate()) {
-      // Crear el objeto Good con los datos del formulario
-      final updatedGood = Good(
-        code: _codeController.text,
-        name: _nameController.text,
-        keeper: int.tryParse(_keeperController.text),  // Convierte el texto a int
-        brand: _brandController.text,
+  Future<void> createGood() async {
+    String? accessToken = await SecureStorage.getToken();
+    if (accessToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: No se encontró el token de acceso')));
+      return;
+    }
+
+    final Map<String, dynamic> body = {
+      'code': codeController.text,
+      'description': descriptionController.text,
+      'location': selectedLocation?.id,
+      'type': selectedType?.id,
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: json.encode(body),
       );
 
-      // Volver a la pantalla anterior con el objeto Good actualizado
-      Navigator.pop(context, updatedGood);
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Bien creado con éxito')));
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error al crear el bien')));
+      }
+    } catch (e) {
+      print("Error en la solicitud: $e");
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error al crear el bien')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.code == null ? 'Nuevo Bien' : 'Editar Bien'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.save),
-            onPressed: _saveForm,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text('Formulario de Bien')),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Campo para el código
               TextFormField(
-                controller: _codeController,
+                controller: codeController,
                 decoration: InputDecoration(labelText: 'Código'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El código es obligatorio';
-                  }
-                  return null;
-                },
+                validator: (value) =>
+                    value!.isEmpty ? 'Por favor ingrese el código' : null,
               ),
-              // Campo para el nombre
               TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(labelText: 'Nombre'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El nombre es obligatorio';
-                  }
-                  return null;
-                },
+                controller: descriptionController,
+                decoration: InputDecoration(labelText: 'Descripción'),
+                validator: (value) =>
+                    value!.isEmpty ? 'Por favor ingrese la descripción' : null,
               ),
-              // Campo para el guardián
-              TextFormField(
-                controller: _keeperController,
-                decoration: InputDecoration(labelText: 'Guardián'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El guardián es obligatorio';
-                  }
-                  if (int.tryParse(value) == null) {
-                    return 'Debe ser un número válido';
-                  }
-                  return null;
+              DropdownButtonFormField<LocationName>(
+                value: selectedLocation,
+                decoration: InputDecoration(labelText: 'Ubicación'),
+                items: locations.map((LocationName location) {
+                  return DropdownMenuItem<LocationName>(
+                    value: location,
+                    child: Text(location.name),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    selectedLocation = newValue;
+                  });
                 },
+                validator: (value) =>
+                    value == null ? 'Seleccione una ubicación' : null,
               ),
-              // Campo para la marca
-              TextFormField(
-                controller: _brandController,
-                decoration: InputDecoration(labelText: 'Marca'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'La marca es obligatoria';
-                  }
-                  return null;
+              DropdownButtonFormField<GoodType>(
+                value: selectedType,
+                decoration: InputDecoration(labelText: 'Tipo'),
+                items: types.map((GoodType type) {
+                  return DropdownMenuItem<GoodType>(
+                    value: type,
+                    child: Text(type.name),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    selectedType = newValue;
+                  });
                 },
+                validator: (value) =>
+                    value == null ? 'Seleccione un tipo' : null,
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState?.validate() ?? false) {
+                    createGood();
+                  }
+                },
+                child: Text('Crear Bien'),
               ),
             ],
           ),

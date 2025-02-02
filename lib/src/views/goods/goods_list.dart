@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../services/goods_list_service.dart';
+import '../../services/keeper_list_service.dart'; // Asegúrate de importar el servicio de Keepers
+import '../../services/location_list_service.dart'; // Asegúrate de importar el servicio de Locations
+import '../../services/good_type_list_service.dart'; // Asegúrate de importar el servicio de GoodTypes
 import '../../models/goods_list/goods.dart';
+import '../../models/keeper_name.dart';  // Asegúrate de importar el modelo de Keeper
+import '../../models/location_name.dart';  // Asegúrate de importar el modelo de Location
+import '../../models/good_type.dart';  // Asegúrate de importar el modelo de GoodType
 
 class GoodsList extends StatefulWidget {
   @override
@@ -9,22 +15,36 @@ class GoodsList extends StatefulWidget {
 
 class _GoodsListScreenState extends State<GoodsList> {
   final GoodsListService goodsService = GoodsListService();
-  late Future<List<Goods>> futureGoods;
+  
+  // Nuevos servicios para Keepers, Locations y GoodTypes
+  final KeeperService keeperService = KeeperService();
+  final LocationService locationService = LocationService();
+  final GoodTypeService goodTypeService = GoodTypeService();
 
+  late Future<List<Goods>> futureGoods;
+  
   // Controladores para los filtros
   late TextEditingController _descriptionController;
 
   // Variables para los filtros
-  int? selectedKeeper;
-  int? selectedLocation;
-  int? selectedType;
+  KeeperName? selectedKeeper;
+  LocationName? selectedLocation;
+  GoodType? selectedType;
   String descriptionFilter = "";
+
+  // Listas para los dropdowns (Aquí deberían venir de tu API)
+  List<KeeperName> keepers = [];
+  List<LocationName> locations = [];
+  List<GoodType> types = [];
 
   @override
   void initState() {
     super.initState();
     _descriptionController = TextEditingController();
     futureGoods = goodsService.fetchGoods(); // Cargar datos iniciales sin filtros
+
+    // Llamadas para obtener los keepers, locations y types desde la API
+    _loadDropdownData();
   }
 
   @override
@@ -33,13 +53,22 @@ class _GoodsListScreenState extends State<GoodsList> {
     super.dispose();
   }
 
+  // Método para cargar los datos para los dropdowns
+  void _loadDropdownData() async {
+    // Aquí usamos los servicios correspondientes para cargar los datos
+    keepers = await keeperService.fetchKeepers();
+    locations = await locationService.fetchLocations();
+    types = await goodTypeService.fetchGoodTypes();
+    setState(() {}); // Actualizamos el estado para que se construyan los dropdowns
+  }
+
   // Método para aplicar los filtros
   void applyFilters() {
     setState(() {
       futureGoods = goodsService.fetchGoods(
-        keeperId: selectedKeeper,
-        locationId: selectedLocation,
-        typeId: selectedType,
+        keeperId: selectedKeeper?.id,
+        locationId: selectedLocation?.id,
+        typeId: selectedType?.id,
         description: descriptionFilter,
       );
     });
@@ -69,35 +98,38 @@ class _GoodsListScreenState extends State<GoodsList> {
               flex: 2,
               child: ListView(
                 children: [
-                  _buildFilterDropdown(
+                  _buildFilterDropdown<KeeperName>(
                     label: "Filtrar por Keeper",
                     value: selectedKeeper,
-                    items: [1, 2], // Aquí puedes cargar dinámicamente los valores de los keepers
-                    onChanged: (int? newValue) {
+                    items: keepers, // Aquí utilizamos la lista de keepers cargada desde keeperService
+                    onChanged: (KeeperName? newValue) {
                       setState(() {
                         selectedKeeper = newValue;
                       });
                     },
+                    displayValue: (KeeperName item) => '${item.firstName} ${item.lastName}', // Muestra nombre y apellido
                   ),
-                  _buildFilterDropdown(
+                  _buildFilterDropdown<LocationName>(
                     label: "Filtrar por Ubicación",
                     value: selectedLocation,
-                    items: [1, 2], // Aquí puedes cargar dinámicamente las ubicaciones
-                    onChanged: (int? newValue) {
+                    items: locations, // Aquí utilizamos la lista de locations cargada desde locationService
+                    onChanged: (LocationName? newValue) {
                       setState(() {
                         selectedLocation = newValue;
                       });
                     },
+                    displayValue: (LocationName item) => item.name, // Muestra el nombre de la ubicación
                   ),
-                  _buildFilterDropdown(
+                  _buildFilterDropdown<GoodType>(
                     label: "Filtrar por Tipo",
                     value: selectedType,
-                    items: [1, 3, 4], // Aquí puedes cargar dinámicamente los valores de tipo
-                    onChanged: (int? newValue) {
+                    items: types, // Aquí utilizamos la lista de tipos cargada desde goodTypeService
+                    onChanged: (GoodType? newValue) {
                       setState(() {
                         selectedType = newValue;
                       });
                     },
+                    displayValue: (GoodType item) => item.name, // Muestra el nombre del tipo
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -200,11 +232,12 @@ class _GoodsListScreenState extends State<GoodsList> {
   }
 
   // Método para construir un DropdownButton genérico
-  Widget _buildFilterDropdown({
+  Widget _buildFilterDropdown<T>({
     required String label,
-    required int? value,
-    required List<int> items,
-    required Function(int?) onChanged,
+    required T? value,
+    required List<T> items,
+    required Function(T?) onChanged,
+    required String Function(T) displayValue, // Función para mostrar el valor en el Dropdown
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -212,14 +245,14 @@ class _GoodsListScreenState extends State<GoodsList> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
-          DropdownButton<int>(
+          DropdownButton<T>(
             isExpanded: true,
-            value: value,
+            value: value,  // Usamos el valor directamente sin buscarlo
             hint: Text("Seleccionar"),
-            items: items.map((int value) {
-              return DropdownMenuItem<int>(
-                value: value,
-                child: Text('$value'), // Aquí puedes mostrar el nombre en lugar del ID
+            items: items.map((T item) {
+              return DropdownMenuItem<T>(
+                value: item,
+                child: Text(displayValue(item)), // Usamos la función para mostrar el valor
               );
             }).toList(),
             onChanged: onChanged,
