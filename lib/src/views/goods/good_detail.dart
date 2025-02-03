@@ -10,7 +10,7 @@ class GoodDetail extends StatelessWidget {
   final Goods good;
   final GoodsService _goodsService = GoodsService(); // Instancia del servicio
 
-  GoodDetail({required this.good});
+  GoodDetail({super.key, required this.good});
 
   Future<void> _deleteGood(BuildContext context) async {
     try {
@@ -20,7 +20,7 @@ class GoodDetail extends StatelessWidget {
         SnackBar(content: Text('Bien eliminado exitosamente')),
       );
       // Navegar de regreso a la pantalla anterior
-      Navigator.of(context).pop();
+      Navigator.pop(context);
     } catch (e) {
       // Mostrar un mensaje de error
       ScaffoldMessenger.of(context).showSnackBar(
@@ -100,13 +100,13 @@ class GoodDetail extends StatelessWidget {
             ),
             SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () => {
+              onPressed: () {
                 if (authProvider.isAuthenticated) {
-                  _showDeleteConfirmationDialog(context)
+                  _showDeleteConfirmationDialog(context); // Aquí el context es el del widget GoodDetail
                 } else {
-                  // Usuario no autenticado, mostrar alerta
-                  ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text('Inicia sesión para eliminar el bien')))
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Inicia sesión para eliminar el bien')),
+                  );
                 }
               }, // Mostrar diálogo de confirmación
               style: ElevatedButton.styleFrom(
@@ -124,10 +124,10 @@ class GoodDetail extends StatelessWidget {
     );
   }
 
-  // Función para mostrar el cuadro de diálogo de confirmación
-  void _showDeleteConfirmationDialog(BuildContext context) {
+  // Método para mostrar el cuadro de diálogo de confirmación
+  void _showDeleteConfirmationDialog(BuildContext parentContext) {
     showDialog(
-      context: context,
+      context: parentContext,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Confirmar eliminación'),
@@ -142,7 +142,7 @@ class GoodDetail extends StatelessWidget {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Cerrar el diálogo
-                _deleteGood(context); // Ejecutar la acción de eliminar
+                _deleteGood(parentContext); // Utilizar el contexto padre para eliminar
               },
               child: Text('Eliminar', style: TextStyle(color: Colors.red)),
             ),

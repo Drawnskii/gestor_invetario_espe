@@ -77,7 +77,6 @@ class _GoodFormState extends State<GoodForm> {
       if (response.statusCode == 201) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Bien creado con éxito')));
-        Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error al crear el bien')));
