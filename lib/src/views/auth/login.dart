@@ -86,7 +86,10 @@ class _LoginState extends State<Login> {
                     ),
                     child: Text(
                       "Iniciar Sesión",
-                      style: TextStyle(fontSize: 16),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white.withValues(alpha: 0.75)
+                      ),
                     ),
                   ),
                 ],

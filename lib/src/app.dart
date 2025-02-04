@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
+import 'package:inventario/src/utils/secure_storage.dart';
 
 import 'views/auth/auth_form.dart';
 
@@ -15,6 +19,9 @@ import 'services/auth/login_service.dart';
 
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
+
+import 'package:http/http.dart' as http;
+import 'models/user_profile.dart';
 
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
@@ -108,6 +115,30 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
+  UserProfile? user;
+
+  Future<void> fetchUserData() async {
+    String? accessToken = await SecureStorage.getToken();
+
+    final response = await http.get(
+      Uri.parse('http://192.168.100.11:8000/api/profile'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      }
+    );
+
+    if (response.statusCode == 200) {
+      String decodedResponse = utf8.decode(response.bodyBytes);
+      setState(() {
+        user = UserProfileFromJson(decodedResponse);
+      });
+    }
+    else {
+      throw Exception('Error al cargar los datos');
+    }
+  }
+
   final List<Widget> _views = [
     GoodsList(),
     Scanner()
@@ -120,13 +151,22 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    fetchUserData();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context); // Acceder a autenticación
+
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.primary,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 8.0), // Padding solo a la izquierda
+          padding: const EdgeInsets.only(left: 8.0),
           child: SvgPicture.asset(
-            'assets/images/logo_espe.svg', // Asegúrate de que el archivo esté en assets altura
+            'assets/images/logo_espe.svg',
             width: 100,
             height: 100,
           ),
@@ -136,6 +176,7 @@ class _MainScreenState extends State<MainScreen> {
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onPrimary,
           ),
         ),
         actions: [
@@ -145,7 +186,7 @@ class _MainScreenState extends State<MainScreen> {
                 onPressed: () {
                   Scaffold.of(context).openEndDrawer();
                 },
-                icon: Icon(Icons.settings),
+                icon: Icon(Icons.settings, color: Theme.of(context).colorScheme.onPrimary),
               );
             },
           ),
@@ -160,13 +201,55 @@ class _MainScreenState extends State<MainScreen> {
               decoration: BoxDecoration(
                 color: Theme.of(context).primaryColor,
               ),
-              child: const Text(
-                'Gestión de perfil',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Row(
+                children: [
+                  // Verificar si el usuario está autenticado
+                  if (authProvider.isAuthenticated) ...[
+                    // Ícono de usuario
+                    Icon(
+                      Icons.account_circle,
+                      color: Colors.white,
+                      size: 64,
+                    ),
+                    SizedBox(width: 16), // Espacio entre el ícono y los textos
+                    // Información del usuario
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${user?.firstName} ${user?.lastName}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 4), // Espacio entre los textos
+                        Opacity(
+                          opacity: 0.75,
+                          child: Text(
+                            '@${user?.username}',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    // Mensaje si el usuario no está autenticado
+                    Text(
+                      'Opciones de MiCuenta',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             // FUTUREBUILDER PARA VERIFICAR SI EL USUARIO ESTÁ AUTENTICADO

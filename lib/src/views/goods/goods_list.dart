@@ -128,6 +128,17 @@ class _GoodsListScreenState extends State<GoodsList> {
         children: [
           Container(
             padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.onInverseSurface,
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).shadowColor.withOpacity(0.2), // Color de la sombra con opacidad
+                  offset: Offset(0, 2), // Desplazamiento más pequeño para una sombra más sutil
+                  blurRadius: 8, // Difuminado más suave
+                  spreadRadius: 1, // Extensión ligera para que la sombra no sea demasiado corta
+                ),
+              ],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -257,7 +268,7 @@ class _GoodsListScreenState extends State<GoodsList> {
                           final good = response.results[index];
                           return Card(
                             margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                            elevation: 4.0,
+                            elevation: 1.0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12.0),
                             ),
@@ -269,13 +280,13 @@ class _GoodsListScreenState extends State<GoodsList> {
                                     width: 60,
                                     height: 60,
                                     decoration: BoxDecoration(
-                                      color: Colors.blue.shade50,
+                                      color: Theme.of(context).colorScheme.primary,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Icon(
                                       Icons.inventory_rounded,
                                       size: 32,
-                                      color: Colors.blue.shade700,
+                                      color: Theme.of(context).colorScheme.onPrimary,
                                     ),
                                   ),
                                   const SizedBox(width: 16),

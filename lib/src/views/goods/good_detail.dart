@@ -152,7 +152,6 @@ class GoodDetail extends StatelessWidget {
     );
   }
 
-
   // Método auxiliar para construir una fila de detalle con ícono
   Widget _buildDetailRow(IconData icon, String label, String value) {
     return Row(
