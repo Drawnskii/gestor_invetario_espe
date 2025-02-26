@@ -13,6 +13,7 @@ dependencies:
   barcode_widget: ^2.0.4
   flutter:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.3
   flutter_localizations:
     sdk: flutter
   flutter_secure_storage: ^9.2.4
